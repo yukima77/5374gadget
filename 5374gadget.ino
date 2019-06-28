@@ -34,7 +34,7 @@ const char fingerprint[] PROGMEM = "CC AA 48 48 66 46 0E 91 53 2C 9C 7C 23 2A B1
 // ★★★★★設定項目★★★★★★★★★★
 const char* ssid     = "********";       // 自宅のWiFi設定
 const char* password = "********";
-int start_oclock = 7;   // 通知を開始する時刻
+int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 8;   // 通知を終了する時刻
 int end_minute   = 0;
@@ -51,8 +51,23 @@ void setup() {
 
   // NeoPixelのLEDの初期化
   pixels.begin();
-  pixels.setPixelColor(0, pixels.Color(0, 0, 255));
+  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
   pixels.show();
+
+// 展示用デモ
+#if 0
+  while(1)
+  {
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 2000);
+    delay(500);
+    Blink.softly(&pixels, NUMPIXELS, 32, 255, 0, 2000);
+    delay(500);
+    Blink.softly(&pixels, NUMPIXELS, 0, 255, 128, 2000);
+    delay(500);
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 2000);
+    delay(500);
+  }
+#endif
 
   // AP+STAモードの設定
   WiFi.mode(WIFI_AP_STA);
@@ -81,71 +96,6 @@ void setup() {
   // ファイルの読み出しテスト
   SPIFFS.begin();
 
-  // ゴミ情報の読み出し
-  // 夜中の１時に更新する
-  std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
-  client->setFingerprint(fingerprint);
-  HTTPClient https;
-
-  // "area"とJSONファイルのNo.のずれはここで吸収する
-  String url = "https://raw.githubusercontent.com/PhalanXware/scraped-5374/master/save_" + String(area_number + 1) + ".json";
-  Serial.print("connect url :");
-  Serial.println(url);
-
-  Serial.print("[HTTPS] begin...\n");
-  if (https.begin(*client, url)) {  // HTTPS
-
-    Serial.print("[HTTPS] GET...\n");
-    // start connection and send HTTP header
-    int httpCode = https.GET();
-
-    // httpCode will be negative on error
-    if (httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-      Serial.println(https.getSize());
-
-      // file found at server
-      String payload;
-      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-        payload = https.getString();
-        Serial.println("HTTP_CODE_OK");
-        //Serial.println(payload);
-      }
-
-      String html[10] = {"\0"};
-      int index = split(payload, '\n', html);
-      String garbageDays[4] = {"\0"};
-      garbageDays[0] = html[5];
-      garbageDays[1] = html[6];
-      garbageDays[2] = html[7];
-      garbageDays[3] = html[8];
-      Serial.println(garbageDays[0].indexOf("今日"));
-      Serial.println(garbageDays[1].indexOf("今日"));
-      Serial.println(garbageDays[2].indexOf("今日"));
-      Serial.println(garbageDays[3].indexOf("今日"));
-
-      for (int i = 0; i < 4; i++)
-      {
-        if (garbageDays[i].indexOf("今日") > 0) {
-          today[i] = true;
-        } else {
-          today[i] = false;
-        }
-      }
-
-      Serial.println(today[0]);
-      Serial.println(today[1]);
-      Serial.println(today[2]);
-      Serial.println(today[3]);
-
-    } else {
-      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
-    }
-    https.end();
-  } else {
-    Serial.printf("[HTTPS] Unable to connect\n");
-  }
 }
 
 void loop() {
@@ -157,50 +107,45 @@ void loop() {
   t = time(NULL);
   tm = localtime(&t);
 
-/*
-  Serial.printf(" %04d/%02d/%02d(%s) %02d:%02d:%02d\n",
-                tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                wd[tm->tm_wday],
-                tm->tm_hour, tm->tm_min, tm->tm_sec);
-*/
+  /*
+    Serial.printf(" %04d/%02d/%02d(%s) %02d:%02d:%02d\n",
+                  tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+                  wd[tm->tm_wday],
+                  tm->tm_hour, tm->tm_min, tm->tm_sec);
+  */
 
-  // 点灯パターン
-  if (today[0] == true){
-    // 燃やすごみ（赤）
-    Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 2000);
-  } else if(today[1] == true){
-    // 資源ごみ（緑）
-    Blink.softly(&pixels, NUMPIXELS, 0, 255, 0, 2000);
-  } else if(today[2] == true){
-    // あきびん（エメラルドグリーン）
-    Blink.softly(&pixels, NUMPIXELS, 0, 0, 255, 2000);
-  } else if(today[3] == true){
-    // 燃やさないごみ（紫）
-    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 2000);
+  // 時間のチェック(24H表記)
+  if ((start_oclock < tm->tm_hour) && (tm->tm_hour < end_oclock))
+  {
+    onLed();
   }
-  
-  
-  //  pixels.setPixelColor(0, pixels.Color(255,59,18));
-  //  pixels.show();
-
-  //  pixels.setPixelColor(0, pixels.Color(115,59,151));
-  //  pixels.show();
-
-  //  pixels.setPixelColor(0, pixels.Color(120,173,30));
-  //  pixels.show();
-
-  //  pixels.setPixelColor(0, pixels.Color(64,255,128));
-  //  pixels.show();
-
+  else if (start_oclock == tm->tm_hour)
+  { // 開始時刻の分の判定
+    if (start_minute <= tm->tm_min)
+    {
+      onLed();
+    }
+  }
+  else if (end_oclock == tm->tm_hour)
+  { // 終了時刻の分の判定
+    if (end_minute >= tm->tm_min)
+    {
+      onLed();
+    }
+  }
 
   // 夜中の１時にデータを更新
+  if ((tm->tm_hour == 1) && (tm->tm_min == 0))
+  { // 当日の捨てれるゴミ情報をアップデート
+    updateGarbageDay();
+    delay(60000);
+  }
 
   // Webサーバの接続要求待ち
   server.handleClient();
 
   // 時間待ち
-  delay(100);
-
+  delay(100);  
 }
 
 void wifiConnect() {
@@ -291,6 +236,92 @@ void handleNotFound() {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
+}
+
+void onLed(void) {
+  // 点灯パターン
+  if (today[0] == true) {
+    // 燃やすごみ（赤）
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 3000);
+    delay(500);
+  } else if (today[1] == true) {
+    // 資源ごみ（緑）
+    Blink.softly(&pixels, NUMPIXELS, 32, 255, 0, 3000);
+    delay(500);
+  } else if (today[2] == true) {
+    // あきびん（エメラルドグリーン）
+    Blink.softly(&pixels, NUMPIXELS, 0, 255, 128, 3000);
+    delay(500);
+  } else if (today[3] == true) {
+    // 燃やさないごみ（紫）
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 3000);
+    delay(500);
+  }
+}
+
+// ゴミの日の情報のアップデート
+void updateGarbageDay(void) {
+  // ゴミ情報の読み出し
+  std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+  client->setFingerprint(fingerprint);
+  HTTPClient https;
+
+  // "area"とJSONファイルのNo.のずれはここで吸収する
+  String url = "https://raw.githubusercontent.com/PhalanXware/scraped-5374/master/save_" + String(area_number + 1) + ".json";
+  Serial.print("connect url :");
+  Serial.println(url);
+
+  Serial.print("[HTTPS] begin...\n");
+  if (https.begin(*client, url)) {  // HTTPS
+
+    Serial.print("[HTTPS] GET...\n");
+    // start connection and send HTTP header
+    int httpCode = https.GET();
+
+    // httpCode will be negative on error
+    if (httpCode > 0) {
+      // HTTP header has been send and Server response header has been handled
+      Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+      Serial.println(https.getSize());
+
+      // file found at server
+      String payload;
+      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+        payload = https.getString();
+        Serial.println("HTTP_CODE_OK");
+        //Serial.println(payload);
+      }
+
+      String html[10] = {"\0"};
+      int index = split(payload, '\n', html);
+      String garbageDays[4] = {"\0"};
+      garbageDays[0] = html[5];
+      garbageDays[1] = html[6];
+      garbageDays[2] = html[7];
+      garbageDays[3] = html[8];
+      Serial.println(garbageDays[0].indexOf("今日"));
+      Serial.println(garbageDays[1].indexOf("今日"));
+      Serial.println(garbageDays[2].indexOf("今日"));
+      Serial.println(garbageDays[3].indexOf("今日"));
+
+      for (int i = 0; i < 4; i++)
+      {
+        if (garbageDays[i].indexOf("今日") > 0) {
+          Serial.println("true");
+          today[i] = true;
+        } else {
+          Serial.println("false");
+          today[i] = false;
+        }
+      }
+
+    } else {
+      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+    }
+    https.end();
+  } else {
+    Serial.printf("[HTTPS] Unable to connect\n");
+  }
 }
 
 // 文字列の分割処理
