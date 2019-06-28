@@ -1,3 +1,4 @@
+// WEB画面での設定は今後機能を追加予定
 #include <Adafruit_NeoPixel.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -105,8 +106,9 @@ void setup() {
       Serial.println(https.getSize());
 
       // file found at server
+      String payload;
       if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-        String payload = https.getString();
+        payload = https.getString();
         Serial.println("HTTP_CODE_OK");
         //Serial.println(payload);
       }
@@ -155,25 +157,28 @@ void loop() {
   t = time(NULL);
   tm = localtime(&t);
 
+/*
   Serial.printf(" %04d/%02d/%02d(%s) %02d:%02d:%02d\n",
                 tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
                 wd[tm->tm_wday],
                 tm->tm_hour, tm->tm_min, tm->tm_sec);
+*/
 
   // 点灯パターン
   if (today[0] == true){
     // 燃やすごみ（赤）
-    Blink.softly(&pixels, NUMLED, 255, 0, 0, 2000);
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 2000);
   } else if(today[1] == true){
     // 資源ごみ（緑）
-    Blink.softly(&pixels, NUMLED, 0, 255, 0, 2000);
-  }　else if(today[2] == true){
+    Blink.softly(&pixels, NUMPIXELS, 0, 255, 0, 2000);
+  } else if(today[2] == true){
     // あきびん（エメラルドグリーン）
-    Blink.softly(&pixels, NUMLED, 0, 0, 255, 2000);
-  }　else if(today[3] == true){
+    Blink.softly(&pixels, NUMPIXELS, 0, 0, 255, 2000);
+  } else if(today[3] == true){
     // 燃やさないごみ（紫）
-    Blink.softly(&pixels, NUMLED, 255, 0, 255, 2000);
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 2000);
   }
+  
   
   //  pixels.setPixelColor(0, pixels.Color(255,59,18));
   //  pixels.show();
@@ -190,15 +195,10 @@ void loop() {
 
   // 夜中の１時にデータを更新
 
-
-
-
-
   // Webサーバの接続要求待ち
   server.handleClient();
 
-  //  pixels.setPixelColor(0, pixels.Color(0,0,0));
-  //  pixels.show();
+  // 時間待ち
   delay(100);
 
 }
@@ -220,53 +220,6 @@ void wifiConnect() {
   Serial.print("Connected! IP address: ");
   Serial.println(WiFi.localIP());
 }
-
-String getPageSource1(char host[]) {
-  HTTPClient http;
-
-  Serial.println(host);
-  http.begin(host);
-  int httpCode = http.GET();
-
-  String result = "";
-
-  if (httpCode < 0) {
-    result = http.errorToString(httpCode);
-  } else if (http.getSize() < 0) {
-    result =  "size is invalid";
-  } else {
-    Serial.println("getString");
-    result = http.getString();
-  }
-
-  http.end();
-  return result;
-}
-
-String getPageSource2(char host[]) {
-  WiFiClientSecure client;
-
-  if ( !client.connect(host, 443) ) {
-    return String("");
-  }
-
-  client.print(String("GET ") + "/" +
-               " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" +
-               "Connection: close\r\n\r\n");
-  client.println();
-
-  delay(1000);
-
-  String body = "";
-
-  while (client.available()) {
-    body += client.readStringUntil('\r');
-  }
-
-  return body;
-}
-
 
 void handleRoot() {
   // HTTPステータスコード(200) リクエストの成功
@@ -340,6 +293,7 @@ void handleNotFound() {
   server.send(404, "text/plain", message);
 }
 
+// 文字列の分割処理
 int split(String data, char delimiter, String *dst) {
   int index = 0;
   int arraySize = (sizeof(data) / sizeof((data)[0]));
