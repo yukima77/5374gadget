@@ -96,6 +96,10 @@ void setup() {
   // ファイルの読み出しテスト
   SPIFFS.begin();
 
+  // 今日のデータの読み出し
+  updateGarbageDay();
+
+
 }
 
 void loop() {
