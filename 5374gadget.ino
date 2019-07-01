@@ -299,10 +299,10 @@ void updateGarbageDay(void) {
       garbageDays[1] = html[6];
       garbageDays[2] = html[7];
       garbageDays[3] = html[8];
-      Serial.println(garbageDays[0].indexOf("今日"));
-      Serial.println(garbageDays[1].indexOf("今日"));
-      Serial.println(garbageDays[2].indexOf("今日"));
-      Serial.println(garbageDays[3].indexOf("今日"));
+      //Serial.println(garbageDays[0].indexOf("今日"));
+      //Serial.println(garbageDays[1].indexOf("今日"));
+      //Serial.println(garbageDays[2].indexOf("今日"));
+      //Serial.println(garbageDays[3].indexOf("今日"));
 
       for (int i = 0; i < 4; i++)
       {
