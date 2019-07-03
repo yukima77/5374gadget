@@ -54,9 +54,9 @@ void setup() {
   pixels.setPixelColor(0, pixels.Color(0, 0, 0));
   pixels.show();
 
-// 展示用デモ
+  // 展示用デモ
 #if 0
-  while(1)
+  while (1)
   {
     Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 2000);
     delay(500);
@@ -149,7 +149,7 @@ void loop() {
   server.handleClient();
 
   // 時間待ち
-  delay(100);  
+  delay(100);
 }
 
 void wifiConnect() {
