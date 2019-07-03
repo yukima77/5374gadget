@@ -16,7 +16,7 @@
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 // HTML用バッファ
-#define BUFFER_SIZE 10240
+#define BUFFER_SIZE 5120
 uint8_t buf[BUFFER_SIZE];
 
 // APサーバーの設定
