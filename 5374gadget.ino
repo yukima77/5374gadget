@@ -45,7 +45,7 @@ const char* password = "********";
 int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 8;   // 通知を終了する時刻
-int end_minute   = 0;
+int end_minute   = 30;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
 int area_number = 3;    // 地区の番号（例：浅野 0, 浅野川 1, 木曳野 14）
