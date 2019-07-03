@@ -162,8 +162,8 @@ void loop() {
   // 地域選択が更新されたらデータを更新
   if (updatedArea)
   { // 地域選択が更新された場合
+    updatedArea = false;
     updateGarbageDay();
-    delay(60000);
   }
 
   // Webサーバの接続要求待ち
