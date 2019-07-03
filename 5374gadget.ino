@@ -24,8 +24,14 @@ const char* softap_ssid     = "5374gadget";
 const char* softap_password = "12345678";
 ESP8266WebServer server(80); //Webサーバの待ち受けポートを標準的な80番として定義します
 
-// 燃やすごみ, 資源ごみ, あきびん, 燃やさないごみ
-bool today[4] = {false, false, false, false};
+// 燃やすごみ, 燃やさないごみ、資源, あきびん
+enum GARBAGE {
+  notgarbage,
+  burnable,
+  unburnable,
+  recyclable,
+  bottle,
+} today;
 
 // Use web browser to view and copy
 // SHA1 fingerprint of the certificate
@@ -97,6 +103,7 @@ void setup() {
   SPIFFS.begin();
 
   // 今日のデータの読み出し
+  today = notgarbage;
   updateGarbageDay();
 
 
@@ -244,21 +251,21 @@ void handleNotFound() {
 
 void onLed(void) {
   // 点灯パターン
-  if (today[0] == true) {
+  if (today == burnable) {
     // 燃やすごみ（赤）
     Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 3000);
     delay(500);
-  } else if (today[1] == true) {
+  } else if (today == unburnable) {
+    // 燃やさないごみ（紫）
+    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 3000);
+    delay(500);
+  } else if (today == recyclable) {
     // 資源ごみ（緑）
     Blink.softly(&pixels, NUMPIXELS, 32, 255, 0, 3000);
     delay(500);
-  } else if (today[2] == true) {
+  } else if (today == bottle) {
     // あきびん（エメラルドグリーン）
     Blink.softly(&pixels, NUMPIXELS, 0, 255, 128, 3000);
-    delay(500);
-  } else if (today[3] == true) {
-    // 燃やさないごみ（紫）
-    Blink.softly(&pixels, NUMPIXELS, 255, 0, 255, 3000);
     delay(500);
   }
 }
@@ -293,31 +300,31 @@ void updateGarbageDay(void) {
       if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
         payload = https.getString();
         Serial.println("HTTP_CODE_OK");
-        //Serial.println(payload);
+        Serial.println(payload);
       }
 
       String html[10] = {"\0"};
       int index = split(payload, '\n', html);
-      String garbageDays[4] = {"\0"};
-      garbageDays[0] = html[5];
-      garbageDays[1] = html[6];
-      garbageDays[2] = html[7];
-      garbageDays[3] = html[8];
-      //Serial.println(garbageDays[0].indexOf("今日"));
-      //Serial.println(garbageDays[1].indexOf("今日"));
-      //Serial.println(garbageDays[2].indexOf("今日"));
-      //Serial.println(garbageDays[3].indexOf("今日"));
+      String garbageDays = {"\0"};
+      garbageDays = html[5];
+      Serial.println(garbageDays);
 
-      for (int i = 0; i < 4; i++)
-      {
-        if (garbageDays[i].indexOf("今日") > 0) {
-          Serial.println("true");
-          today[i] = true;
+      if (garbageDays.indexOf("今日") > 0) {
+        if (garbageDays.indexOf("燃やすごみ") > 0) {
+          today = burnable;
+        } else if (garbageDays.indexOf("燃やさないごみ") > 0) {
+          today = unburnable;
+        } else if (garbageDays.indexOf("資源") > 0) {
+          today = recyclable;
+        } else if (garbageDays.indexOf("あきびん") > 0) {
+          today = bottle;
         } else {
-          Serial.println("false");
-          today[i] = false;
+          today = notgarbage;
         }
       }
+
+      Serial.print("今日は、");
+      Serial.println(today);
 
     } else {
       Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
