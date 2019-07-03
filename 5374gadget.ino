@@ -33,6 +33,8 @@ enum GARBAGE {
   bottle,
 } today;
 
+bool updatedArea = false;
+
 // Use web browser to view and copy
 // SHA1 fingerprint of the certificate
 const char fingerprint[] PROGMEM = "CC AA 48 48 66 46 0E 91 53 2C 9C 7C 23 2A B1 74 4D 29 9D 33"; // raw
@@ -94,7 +96,13 @@ void setup() {
   // サーバー機能
   server.on("/", handleRoot);
   server.on("/index.html", handleRoot);
+  server.on("/set-wifi.html",   handleSetWifi);
+  server.on("/set-area.html",   handleSetArea);     // 時刻の設定画面
+  server.on("/set-time.html",  handleSetTime);
   // 処理部
+  server.on("/settingWiFi",   handleSettingWiFi);
+  server.on("/settingArea",   handleSettingArea);
+  server.on("/settingTime",  handleSettingTime);
   server.onNotFound(handleNotFound);        // エラー処理
   server.begin();
   Serial.println("HTTP server started");
@@ -105,7 +113,6 @@ void setup() {
   // 今日のデータの読み出し
   today = notgarbage;
   updateGarbageDay();
-
 
 }
 
@@ -152,6 +159,13 @@ void loop() {
     delay(60000);
   }
 
+  // 地域選択が更新されたらデータを更新
+  if (updatedArea)
+  { // 地域選択が更新された場合
+    updateGarbageDay();
+    delay(60000);
+  }
+
   // Webサーバの接続要求待ち
   server.handleClient();
 
@@ -177,12 +191,10 @@ void wifiConnect() {
   Serial.println(WiFi.localIP());
 }
 
-void handleRoot() {
-  // HTTPステータスコード(200) リクエストの成功
-  Serial.println("Accessed handleRoot");
-
+void readHtml(String filename)
+{
   // HTMLファイルの読出し
-  File htmlFile = SPIFFS.open("/index.html", "r");
+  File htmlFile = SPIFFS.open(filename, "r");
   if (!htmlFile) {
     Serial.println("Failed to open index.html");
   }
@@ -194,9 +206,29 @@ void handleRoot() {
     Serial.print("File Size OK:");
     Serial.println((int)size);
   }
+  memset(buf, 0, sizeof(buf));
   htmlFile.read(buf, size);
   htmlFile.close();
+}
 
+void handleRoot() {
+  Serial.println("Accessed handleRoot");
+  readHtml("/index.html");
+  server.send(200, "text/html", (char *)buf);
+}
+
+void handleSetWifi() {
+  readHtml("/set-wifi.html");
+  server.send(200, "text/html", (char *)buf);
+}
+
+void handleSetArea() {
+  readHtml("/set-area.html");
+  server.send(200, "text/html", (char *)buf);
+}
+
+void handleSetTime() {
+  readHtml("/set-time.html");
   server.send(200, "text/html", (char *)buf);
 }
 
@@ -230,8 +262,107 @@ void handleSetting() {
   Serial.println(temp_start);
   Serial.print("time_end:  ");
   Serial.println(temp_end);
-
 }
+
+void handleSettingWiFi()
+{
+  // レスポンス処理
+  handleRoot();
+}
+
+void handleSettingArea()
+{
+  // 校下・地区の更新
+  String stringArea = server.arg("area");
+  area_number = stringArea.toInt();
+  Serial.print("area: ");
+  Serial.println(area_number);
+
+  // 地域のアップデートフラグを上げる
+  updatedArea = true;
+
+  // レスポンス処理
+  handleRoot();
+}
+
+void handleSettingTime()
+{
+  // レスポンス処理
+  handleRoot();
+}
+
+/*
+  void handleSettingDate() {
+  String set_times[2] = {"\0"};
+  String temp_start = server.arg("start");
+  String temp_end = server.arg("end");
+  Serial.print("time_start:  ");
+  Serial.println(temp_start);
+  Serial.print("time_end:  ");
+  Serial.println(temp_end);
+
+  Serial.print("Sun : ");
+  Serial.println(server.arg("Sun"));
+  Serial.print("Mon : ");
+  Serial.println(server.arg("Mon"));
+  Serial.print("Tue : ");
+  Serial.println(server.arg("Tue"));
+  Serial.print("Wed : ");
+  Serial.println(server.arg("Wed"));
+  Serial.print("Thr : ");
+  Serial.println(server.arg("Thr"));
+  Serial.print("Fri : ");
+  Serial.println(server.arg("Fri"));
+  Serial.print("Sat : ");
+  Serial.println(server.arg("Sat"));
+
+  set_week[0] = server.arg("Sun") == "1"? true : false;
+  set_week[1] = server.arg("Mon") == "1"? true : false;
+  set_week[2] = server.arg("Tue") == "1"? true : false;
+  set_week[3] = server.arg("Wed") == "1"? true : false;
+  set_week[4] = server.arg("Thr") == "1"? true : false;
+  set_week[5] = server.arg("Fri") == "1"? true : false;
+  set_week[6] = server.arg("Sat") == "1"? true : false;
+
+  Serial.print("Sun : ");
+  Serial.println(set_week[0]);
+  Serial.print("Mon : ");
+  Serial.println(set_week[1]);
+  Serial.print("Tue : ");
+  Serial.println(set_week[2]);
+  Serial.print("Wed : ");
+  Serial.println(set_week[3]);
+  Serial.print("Thr : ");
+  Serial.println(set_week[4]);
+  Serial.print("Fri : ");
+  Serial.println(set_week[5]);
+  Serial.print("Sat : ");
+  Serial.println(set_week[6]);
+
+  // 時間の設定処理
+  if (temp_start.length() > 0 && temp_end.length() > 0) {
+
+    // 開始時刻の処理
+    split(temp_start, ':', set_times);
+    start_oclock = set_times[0].toInt();
+    start_minute = set_times[1].toInt();
+
+    // 終了時刻の処理
+    split(temp_end, ':', set_times);
+    end_oclock = set_times[0].toInt();
+    end_minute = set_times[1].toInt();
+
+    Serial.println("Setting Done!");
+    Serial.print("Start Time: ");
+    Serial.println(temp_start);
+    Serial.print("End Time: ");
+    Serial.println(temp_end);
+    server.send(200, "text/html", "Setting Done!");
+  } else {
+    server.send(200, "text/html", "Setting Fault...");
+  }
+  }
+*/
 
 // アクセスのエラー処理
 void handleNotFound() {
@@ -293,14 +424,14 @@ void updateGarbageDay(void) {
     if (httpCode > 0) {
       // HTTP header has been send and Server response header has been handled
       Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-      Serial.println(https.getSize());
+      //Serial.println(https.getSize());
 
       // file found at server
       String payload;
       if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
         payload = https.getString();
         Serial.println("HTTP_CODE_OK");
-        Serial.println(payload);
+        //Serial.println(payload);
       }
 
       String html[10] = {"\0"};
