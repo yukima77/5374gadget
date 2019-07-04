@@ -1,11 +1,10 @@
-// WEB画面での設定は今後機能を追加予定
-#include <Adafruit_NeoPixel.h>
+#include <FS.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFiGeneric.h>
 #include <ESP8266HTTPClient.h>
 #include <WiFiClientSecureBearSSL.h>
-#include <FS.h>
+#include <Adafruit_NeoPixel.h>
 // https://github.com/pokiiio/EmotionalBlink
 #include <EmotionalBlink.h>
 
@@ -22,6 +21,7 @@ uint8_t buf[BUFFER_SIZE];
 // APサーバーの設定
 const char* softap_ssid     = "5374gadget";
 const char* softap_password = "12345678";
+
 ESP8266WebServer server(80); //Webサーバの待ち受けポートを標準的な80番として定義します
 
 // 燃やすごみ, 燃やさないごみ、資源, あきびん
@@ -34,21 +34,22 @@ enum GARBAGE {
 } today;
 
 bool updatedArea = false;
+bool retryWifiConnect = false;
 
 // Use web browser to view and copy
 // SHA1 fingerprint of the certificate
 const char fingerprint[] PROGMEM = "CC AA 48 48 66 46 0E 91 53 2C 9C 7C 23 2A B1 74 4D 29 9D 33"; // raw
 
 // ★★★★★設定項目★★★★★★★★★★
-const char* ssid     = "********";       // 自宅のWiFi設定
-const char* password = "********";
+String ssid     = "********";       // 自宅のWiFi設定
+String password = "********";
 int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 8;   // 通知を終了する時刻
 int end_minute   = 30;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 3;    // 地区の番号（例：浅野 0, 浅野川 1, 木曳野 14）
+int area_number = 0;    // 地区の番号（例：浅野 0, 浅野川 1）
 // ★★★★★★★★★★★★★★★★★★★
 
 void setup() {
@@ -166,6 +167,22 @@ void loop() {
     updateGarbageDay();
   }
 
+  // WiFi設定が更新されたら設定値を更新し、WiFi接続を試みる
+  if (retryWifiConnect)
+  {
+    retryWifiConnect = false;
+    wifiConnect();
+    updateGarbageDay();
+  }
+
+  // STAモードで接続出来ていない場合
+  if (WiFi.status() != WL_CONNECTED) {
+    Blink.softly(&pixels, NUMPIXELS, 32, 32, 32, 1000);
+  } else {
+    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+    pixels.show();
+  }
+
   // Webサーバの接続要求待ち
   server.handleClient();
 
@@ -179,16 +196,27 @@ void wifiConnect() {
   //WiFi接続開始
   WiFi.begin(ssid, password);
 
-  //接続状態になるまで待つ
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
+  //接続を試みる(30秒)
+  for (int i = 0; i < 60; i++) {
+    if (WiFi.status() == WL_CONNECTED) {
+      //接続に成功。IPアドレスを表示
+      Serial.println();
+      Serial.print("Connected! IP address: ");
+      Serial.println(WiFi.localIP());
+      break;
+    } else {
+      Serial.print(".");
+      delay(500);
+    }
   }
 
-  //接続に成功。IPアドレスを表示
-  Serial.println();
-  Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
+  // WiFiに接続出来ていない場合
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("");
+    Serial.println("Failed, Wifi connecting error");
+  }
+
 }
 
 void readHtml(String filename)
@@ -257,6 +285,17 @@ void handleSet() {
 // 設定処理
 void handleSettingWiFi()
 {
+  // SSID/PASSの読み込み
+  ssid = server.arg("ssid");
+  password = server.arg("pass");
+  Serial.print("SSID: ");
+  Serial.println(ssid);
+  Serial.print("PASS: ");
+  Serial.println(password);
+
+  // WiFiの再接続フラグを上げる
+  retryWifiConnect = true;
+
   // レスポンス処理
   handleRoot();
 }
