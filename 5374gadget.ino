@@ -255,15 +255,6 @@ void handleSet() {
 }
 
 // 設定処理
-void handleSetting() {
-  String temp_start = server.arg("start");
-  String temp_end = server.arg("end");
-  Serial.print("time_start:  ");
-  Serial.println(temp_start);
-  Serial.print("time_end:  ");
-  Serial.println(temp_end);
-}
-
 void handleSettingWiFi()
 {
   // レスポンス処理
