@@ -9,10 +9,11 @@
 * int end_minute   = 0;
 
 ## ファームウェアのアップデート方法
-### ESP8266のファームウェアの書き込み方法
-
-
-
+#### ESP8266のファームウェアの書き込み方法
+* T.B.D
+#### HTMLファイルのアップデート方法
+esp-wroom-02(esp8266)のSPIFFS機能でフラッシュメモリにHTMLファイルを追加する
+http://www.shangtian.tokyo/entry/2018/02/17/151330
 
 ## WEBブラウザからの設定
 * SSID：5374gadget
