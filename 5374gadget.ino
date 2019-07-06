@@ -177,7 +177,7 @@ void loop() {
 
   // STAモードで接続出来ていない場合
   if (WiFi.status() != WL_CONNECTED) {
-    Blink.softly(&pixels, NUMPIXELS, 32, 32, 32, 1000);
+    Blink.softly(&pixels, NUMPIXELS, 32, 32, 32, 500);
   } else {
     pixels.setPixelColor(0, pixels.Color(0, 0, 0));
     pixels.show();
