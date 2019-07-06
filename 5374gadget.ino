@@ -157,7 +157,7 @@ void loop() {
   if ((tm->tm_hour == 1) && (tm->tm_min == 0))
   { // 当日の捨てれるゴミ情報をアップデート
     updateGarbageDay();
-    delay(60000);
+    delay(70000); // 余裕を見て、70秒後に変更
   }
 
   // 地域選択が更新されたらデータを更新
