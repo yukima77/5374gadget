@@ -153,8 +153,8 @@ void loop() {
     }
   }
 
-  // 夜中の１時にデータを更新
-  if ((tm->tm_hour == 1) && (tm->tm_min == 0))
+  // 夜中の３時にデータを更新
+  if ((tm->tm_hour == 3) && (tm->tm_min == 0))
   { // 当日の捨てれるゴミ情報をアップデート
     updateGarbageDay();
     delay(70000); // 余裕を見て、70秒後に変更
