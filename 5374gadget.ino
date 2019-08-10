@@ -57,6 +57,7 @@ void setup() {
   // シリアル設定
   Serial.begin(9600);
   Serial.println("");
+  Serial.println("Start 5374gadget!!!");
 
   // NeoPixelのLEDの初期化
   pixels.begin();
