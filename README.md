@@ -1,21 +1,10 @@
 # 5374gadget
 
-## 初期設定の項目（ファームウェアに書き込む場合）
-* String ssid     = "********";       // 自宅のWiFi設定
-* String password = "********";
-* int start_oclock = 6;   // 通知を開始する時刻
-* int start_minute = 0;
-* int end_oclock   = 8;   // 通知を終了する時刻
-* int end_minute   = 0;
-
-## ファームウェアのアップデート方法
-#### ESP8266のファームウェアの書き込み方法
-* T.B.D
-#### HTMLファイルのアップデート方法
-* esp-wroom-02(esp8266)のSPIFFS機能でフラッシュメモリにHMLファイルを追加する
-http://www.shangtian.tokyo/entry/2018/02/17/151330
-
-* SPIFSの容量は、32KBでOK
+## 初めて使用する場合
+1. 電源を入れて下さい
+1. 本体が白く点滅するまでしばらくお待ち下さい（約１分程度）
+1. アクセスポイントモードが有効になっているので、以下のWEBブラウザからの設定を参考にSSID/パスワードを設定してください
+1. 以上で設定完了です。
 
 ## WEBブラウザからの設定
 * SSID：5374gadget
@@ -25,4 +14,21 @@ http://www.shangtian.tokyo/entry/2018/02/17/151330
 ## その他
 * WiFiの設定、地域の設定の順に設定して下さい
 * WiFiに接続出来ていない場合は白く点滅します
+
+# 上級者向け
+
+## ファームウェアのアップデート方法
+#### ESP8266のファームウェアの書き込み方法
+* T.B.D
+#### HTMLファイルのアップデート方法
+* esp-wroom-02(esp8266)のSPIFFS機能でフラッシュメモリにHMLファイルを追加する
+* SPIFSの容量は、32KBでOK
+http://www.shangtian.tokyo/entry/2018/02/17/151330
+
+## 初期設定の項目（ファームウェアに書き込む場合）
+* int start_oclock = 6;   // 通知を開始する時刻
+* int start_minute = 0;
+* int end_oclock   = 8;   // 通知を終了する時刻
+* int end_minute   = 0;
+
 
