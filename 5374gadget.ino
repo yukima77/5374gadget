@@ -21,7 +21,7 @@ uint8_t buf[BUFFER_SIZE];
 // APサーバーの設定
 const char* softap_ssid     = "5374gadget";
 const char* softap_password = "12345678";
-
+const char* settings = "/wifi_settings.txt";
 ESP8266WebServer server(80); //Webサーバの待ち受けポートを標準的な80番として定義します
 
 // 燃やすごみ, 燃やさないごみ、資源, あきびん
@@ -78,6 +78,9 @@ void setup() {
   }
 #endif
 
+  // ファイルの読み出しテスト(WiFi接続でSPIFFSを使うので、先に初期化)
+  SPIFFS.begin();
+
   // AP+STAモードの設定
   WiFi.mode(WIFI_AP_STA);
   IPAddress myIP = WiFi.softAPIP();   // APとしてのIPアドレスを取得。デフォルトは 192.168.4.1
@@ -107,9 +110,6 @@ void setup() {
   server.onNotFound(handleNotFound);        // エラー処理
   server.begin();
   Serial.println("HTTP server started");
-
-  // ファイルの読み出しテスト
-  SPIFFS.begin();
 
   // 今日のデータの読み出し
   today = notgarbage;
@@ -194,10 +194,27 @@ void loop() {
 }
 
 void wifiConnect() {
-  Serial.print("Connecting to " + String(ssid));
+  
+  // WiFiファイルの読出し
+  File f = SPIFFS.open(settings, "r");
+  if (!f) {
+    // 設定ファイルが無い場合
+    Serial.println("not exist the WiFiSettingFile.");
+  } else {
+    // 設定ファイルがある場合
+    Serial.println("exist the WiFiSettingFile.");
+    ssid = f.readStringUntil('\n');
+    password = f.readStringUntil('\n');
+    ssid.trim();
+    password.trim();
+    Serial.println("SSID: " + ssid);
+    //Serial.println("PASS: " + password);
+  }
+  f.close();
 
   //WiFi接続開始
   WiFi.begin(ssid, password);
+  Serial.print("Connecting to " + String(ssid));
 
   //接続を試みる(30秒)
   for (int i = 0; i < 60; i++) {
@@ -296,11 +313,22 @@ void handleSettingWiFi()
   Serial.print("PASS: ");
   Serial.println(password);
 
+  // ファイルへの保存
+  Serial.println("Write SettingsFile.");
+  File f = SPIFFS.open(settings, "w");
+  f.println(ssid);
+  f.println(password);
+  f.close();
+
   // WiFiの再接続フラグを上げる
   retryWifiConnect = true;
 
-  // レスポンス処理
-  handleRoot();
+  // レスポンス処理（設定値が確認できるようにここはハードコーディング）
+  String html = "";
+  html += "<h1>WiFi Settings</h1>";
+  html += ssid + "<br>";
+  html += password + "<br>";
+  server.send(200, "text/html", html);
 }
 
 void handleSettingArea()
