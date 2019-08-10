@@ -159,6 +159,7 @@ void loop() {
   { // 当日の捨てれるゴミ情報をアップデート
     if ((tm->tm_min == 0) || (tm->tm_min == 20) || (tm->tm_min == 40))
     {
+      wifiConnect();
       updateGarbageDay();
       delay(70000); // 余裕を見て、70秒後に変更
     }
@@ -168,6 +169,7 @@ void loop() {
   if (updatedArea)
   { // 地域選択が更新された場合
     updatedArea = false;
+    wifiConnect();
     updateGarbageDay();
   }
 
