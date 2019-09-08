@@ -154,6 +154,15 @@ void loop() {
     }
   }
 
+  // 夜中の0時にゴミの日情報をリセット
+  if (tm->tm_hour == 0)
+  {
+    if ((tm->tm_min == 0))
+    {
+      today = notgarbage;
+    }
+  }
+
   // 夜中の３時にデータを更新
   if (tm->tm_hour == 3)
   { // 当日の捨てれるゴミ情報をアップデート
@@ -443,6 +452,8 @@ void updateGarbageDay(void) {
         } else {
           today = notgarbage;
         }
+      } else {
+        today = notgarbage;
       }
 
       Serial.print("今日は、");
