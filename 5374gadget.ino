@@ -22,6 +22,7 @@ uint8_t buf[BUFFER_SIZE];
 const char* softap_ssid     = "5374gadget";
 const char* softap_password = "12345678";
 const char* settings = "/wifi_settings.txt";
+const char* area_settings = "/area_settings.txt";
 ESP8266WebServer server(80); //Webサーバの待ち受けポートを標準的な80番として定義します
 
 // 燃やすごみ, 燃やさないごみ、資源, あきびん
@@ -224,6 +225,24 @@ void wifiConnect() {
   }
   f.close();
 
+  // 地域情報の読み出し
+  File f = SPIFFS.open(area_settings, "r");
+  if (!f) {
+    // 設定ファイルが無い場合
+    Serial.println("not exist the AreaSettingFile.");
+  } else {
+    // 設定ファイルがある場合
+    Serial.println("exist the AreaSettingFile.");
+    String stringArea = f.readStringUntil('\n');
+    stringArea.trim();
+    area_number = stringArea.toInt();
+    Serial.print("area: ");
+    Serial.println(area_number);
+  }
+  f.close();
+
+
+
   //WiFi接続開始
   WiFi.begin(ssid, password);
   Serial.print("Connecting to " + String(ssid));
@@ -350,6 +369,12 @@ void handleSettingArea()
   area_number = stringArea.toInt();
   Serial.print("area: ");
   Serial.println(area_number);
+
+  // ファイルへの保存
+  Serial.println("Write SettingsFile.");
+  File f = SPIFFS.open(area_settings, "w");
+  f.println(area_number);
+  f.close();
 
   // 地域のアップデートフラグを上げる
   updatedArea = true;
