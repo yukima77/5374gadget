@@ -357,8 +357,11 @@ void handleSettingWiFi()
   // レスポンス処理（設定値が確認できるようにここはハードコーディング）
   String html = "";
   html += "<h1>WiFi Settings</h1>";
-  html += ssid + "<br>";
-  html += password + "<br>";
+  html += "SSID : " + ssid + "<br>";
+  html += "PASS : " + password + "<br>";
+  html += "<br>";
+  html += "<form method='GET' action='/index.html'>";
+  html += "<button style=\"width:40%; padding: 10px\">HOME</button></form><br>";  
   server.send(200, "text/html", html);
 }
 
