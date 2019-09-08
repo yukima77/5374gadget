@@ -226,20 +226,20 @@ void wifiConnect() {
   f.close();
 
   // 地域情報の読み出し
-  File f = SPIFFS.open(area_settings, "r");
-  if (!f) {
+  File f_area = SPIFFS.open(area_settings, "r");
+  if (!f_area) {
     // 設定ファイルが無い場合
     Serial.println("not exist the AreaSettingFile.");
   } else {
     // 設定ファイルがある場合
     Serial.println("exist the AreaSettingFile.");
-    String stringArea = f.readStringUntil('\n');
+    String stringArea = f_area.readStringUntil('\n');
     stringArea.trim();
     area_number = stringArea.toInt();
     Serial.print("area: ");
     Serial.println(area_number);
   }
-  f.close();
+  f_area.close();
 
 
 
