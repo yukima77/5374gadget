@@ -270,7 +270,7 @@ void loop() {
 }
 
 void wifiConnect() {
-  
+
   // WiFiファイルの読出し
   File f = SPIFFS.open(settings, "r");
   if (!f) {
@@ -430,7 +430,7 @@ void handleSettingWiFi()
   html += "PASS : " + password + "<br>";
   html += "<br>";
   html += "<form method='GET' action='/index.html'>";
-  html += "<button style=\"width:40%; padding: 10px\">HOME</button></form><br>";  
+  html += "<button style=\"width:40%; padding: 10px\">HOME</button></form><br>";
   server.send(200, "text/html", html);
 }
 
