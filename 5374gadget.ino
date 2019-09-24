@@ -34,12 +34,31 @@ enum GARBAGE {
   bottle,
 } today;
 
+// 動作モード：サーバー版、ローカルファイル版
+enum MODE {
+  mode_server,
+  mode_spifs,
+} mode_update;
+
 bool updatedArea = false;
 bool retryWifiConnect = false;
 
 // Use web browser to view and copy
 // SHA1 fingerprint of the certificate
 const char fingerprint[] PROGMEM = "CC AA 48 48 66 46 0E 91 53 2C 9C 7C 23 2A B1 74 4D 29 9D 33"; // raw
+
+// ゴミの日データ(ローカルファイル版)
+const char* data_garbage = "/data_garbage.csv";
+
+// ごみカレンダー用バッファ
+#define BUFFER_SIZE_GMC 5120
+char buf_gmc[BUFFER_SIZE_GMC];
+
+// ごみカレンダー配列 (Table)
+// 　次元 0: 月(0～11 = 1～12月)
+//        1: 週(0～4  = 第1週～第5週)
+//        2: 週(0～6  = 日曜日～土曜日)
+char gomi_cal[12][5][7];
 
 // ★★★★★設定項目★★★★★★★★★★
 String ssid     = "********";       // 自宅のWiFi設定
@@ -48,6 +67,9 @@ int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 8;   // 通知を終了する時刻
 int end_minute   = 30;
+// ★★★★★★★★★★★★★★★★★★★
+
+// ★★★★★設定項目（金沢市版）★★★★
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
 int area_number = 0;    // 地区の番号（例：浅野 0, 浅野川 1）
@@ -102,23 +124,39 @@ void setup() {
   // SPIFS内のファイル表示
   listAllFiles();
 
+  // ごみの日データの有無でサーバーモードとローカルファイルモードを切り替え
+  if (SPIFFS.exists(data_garbage)) {
+    // ゴミの日情報がSPIFSにある場合
+    Serial.println("exist the DataGarbageFile.");
+    Serial.println("mode_update = mode_spifs");
+    mode_update = mode_spifs;
+    csvFileRead_CalArraySet();    // ごみカレンダーファイルの読み出し・ごみカレンダー配列準備
+  } else {
+    // ゴミの日情報がSPIFSに無い場合
+    Serial.println("not exist the DataGarbageFile.");
+    Serial.println("mode_update = mode_server");
+    mode_update = mode_server;
+    today = notgarbage;           // 今日のデータの読み出し
+    updateGarbageDay();
+  }
+
   // サーバー機能
-  server.on("/", handleRoot);
-  server.on("/index.html", handleRoot);
-  server.on("/set-wifi.html",   handleSetWifi);
-  server.on("/set-area.html",   handleSetArea);     // 時刻の設定画面
-  server.on("/set-time.html",  handleSetTime);
+  if (mode_update == mode_server) {
+    server.on("/", handleRoot);
+  } else if (mode_update == mode_spifs) {
+    server.on("/", handleRootSpifs);
+  }
+  server.on("/index.html",    handleRoot);
+  server.on("/set-wifi.html", handleSetWifi);
+  server.on("/set-area.html", handleSetArea);
+  server.on("/set-time.html", handleSetTime);     // 時刻の設定画面
   // 処理部
   server.on("/settingWiFi",   handleSettingWiFi);
   server.on("/settingArea",   handleSettingArea);
-  server.on("/settingTime",  handleSettingTime);
-  server.onNotFound(handleNotFound);        // エラー処理
+  server.on("/settingTime",   handleSettingTime);
+  server.onNotFound(handleNotFound);                // エラー処理
   server.begin();
   Serial.println("HTTP server started");
-
-  // 今日のデータの読み出し
-  today = notgarbage;
-  updateGarbageDay();
 
 }
 
@@ -139,42 +177,64 @@ void loop() {
   */
 
   // 時間のチェック(24H表記)
-  if ((start_oclock < tm->tm_hour) && (tm->tm_hour < end_oclock))
+  if (2000 < (tm->tm_year + 1900))  // サーバー同期が正しく行われているかどうかで処理を除外
   {
-    onLed();
-  }
-  else if (start_oclock == tm->tm_hour)
-  { // 開始時刻の分の判定
-    if (start_minute <= tm->tm_min)
+    if ((start_oclock < tm->tm_hour) && (tm->tm_hour < end_oclock))
     {
-      onLed();
+      if (mode_update == mode_server) {
+        onLed();
+      }
+      if (mode_update == mode_spifs) {
+        ledColorControlWithGarbage(tm->tm_mon, (tm->tm_mday - 1) / 7, tm->tm_wday);
+      }
     }
-  }
-  else if (end_oclock == tm->tm_hour)
-  { // 終了時刻の分の判定
-    if (end_minute >= tm->tm_min)
-    {
-      onLed();
+    else if (start_oclock == tm->tm_hour)
+    { // 開始時刻の分の判定
+      if (start_minute <= tm->tm_min)
+      {
+        if (mode_update == mode_server) {
+          onLed();
+        }
+        if (mode_update == mode_spifs) {
+          ledColorControlWithGarbage(tm->tm_mon, (tm->tm_mday - 1) / 7, tm->tm_wday);
+        }
+      }
+    }
+    else if (end_oclock == tm->tm_hour)
+    { // 終了時刻の分の判定
+      if (end_minute >= tm->tm_min)
+      {
+        if (mode_update == mode_server) {
+          onLed();
+        }
+        if (mode_update == mode_spifs) {
+          ledColorControlWithGarbage(tm->tm_mon, (tm->tm_mday - 1) / 7, tm->tm_wday);
+        }
+      }
     }
   }
 
-  // 夜中の0時にゴミの日情報をリセット
-  if (tm->tm_hour == 0)
-  {
-    if ((tm->tm_min == 0))
-    {
-      today = notgarbage;
-    }
-  }
+  // サーバーモードの場合
+  if (mode_update == mode_server) {
 
-  // 夜中の３時にデータを更新
-  if (tm->tm_hour == 3)
-  { // 当日の捨てれるゴミ情報をアップデート
-    if ((tm->tm_min == 0) || (tm->tm_min == 20) || (tm->tm_min == 40))
+    // 夜中の0時にゴミの日情報をリセット
+    if (tm->tm_hour == 0)
     {
-      wifiConnect();
-      updateGarbageDay();
-      delay(70000); // 余裕を見て、70秒後に変更
+      if ((tm->tm_min == 0))
+      {
+        today = notgarbage;
+      }
+    }
+
+    // 夜中の３時にデータを更新
+    if (tm->tm_hour == 3)
+    { // 当日の捨てれるゴミ情報をアップデート
+      if ((tm->tm_min == 0) || (tm->tm_min == 20) || (tm->tm_min == 40))
+      {
+        wifiConnect();
+        updateGarbageDay();
+        delay(70000); // 余裕を見て、70秒後に変更
+      }
     }
   }
 
@@ -296,6 +356,12 @@ void readHtml(String filename)
 void handleRoot() {
   Serial.println("Accessed handleRoot");
   readHtml("/index.html");
+  server.send(200, "text/html", (char *)buf);
+}
+
+void handleRootSpifs() {
+  Serial.println("Accessed handleRootSpifs");
+  readHtml("/index_spifs.html");
   server.send(200, "text/html", (char *)buf);
 }
 
@@ -432,71 +498,84 @@ void onLed(void) {
   }
 }
 
-// ゴミの日の情報のアップデート
+// ゴミの日情報のアップデート
+//   mode_server ：サーバーにアクセスしてアップデート
+//   mode_spifs  ：SFIFSファイルをベースにアップデート
 void updateGarbageDay(void) {
-  // ゴミ情報の読み出し
-  std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
-  client->setFingerprint(fingerprint);
-  HTTPClient https;
 
-  // "area"とJSONファイルのNo.のずれはここで吸収する
-  String url = "https://raw.githubusercontent.com/PhalanXware/scraped-5374/master/save_" + String(area_number + 1) + ".json";
-  Serial.print("connect url :");
-  Serial.println(url);
+  // サーバーモード
+  if (mode_update == mode_server) {
 
-  Serial.print("[HTTPS] begin...\n");
-  if (https.begin(*client, url)) {  // HTTPS
+    // ゴミ情報の読み出し
+    std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+    client->setFingerprint(fingerprint);
+    HTTPClient https;
 
-    Serial.print("[HTTPS] GET...\n");
-    // start connection and send HTTP header
-    int httpCode = https.GET();
+    // "area"とJSONファイルのNo.のずれはここで吸収する
+    String url = "https://raw.githubusercontent.com/PhalanXware/scraped-5374/master/save_" + String(area_number + 1) + ".json";
+    Serial.print("connect url :");
+    Serial.println(url);
 
-    // httpCode will be negative on error
-    if (httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-      //Serial.println(https.getSize());
+    Serial.print("[HTTPS] begin...\n");
+    if (https.begin(*client, url)) {  // HTTPS
 
-      // file found at server
-      String payload;
-      if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-        payload = https.getString();
-        Serial.println("HTTP_CODE_OK");
-        //Serial.println(payload);
-      }
+      Serial.print("[HTTPS] GET...\n");
+      // start connection and send HTTP header
+      int httpCode = https.GET();
 
-      String html[10] = {"\0"};
-      int index = split(payload, '\n', html);
-      String garbageDays = {"\0"};
-      garbageDays = html[5];
-      Serial.println(garbageDays);
+      // httpCode will be negative on error
+      if (httpCode > 0) {
+        // HTTP header has been send and Server response header has been handled
+        Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
+        //Serial.println(https.getSize());
 
-      if (garbageDays.indexOf("今日") > 0) {
-        if (garbageDays.indexOf("燃やすごみ") > 0) {
-          today = burnable;
-        } else if (garbageDays.indexOf("燃やさないごみ") > 0) {
-          today = unburnable;
-        } else if (garbageDays.indexOf("資源") > 0) {
-          today = recyclable;
-        } else if (garbageDays.indexOf("あきびん") > 0) {
-          today = bottle;
+        // file found at server
+        String payload;
+        if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+          payload = https.getString();
+          Serial.println("HTTP_CODE_OK");
+          //Serial.println(payload);
+        }
+
+        String html[10] = {"\0"};
+        int index = split(payload, '\n', html);
+        String garbageDays = {"\0"};
+        garbageDays = html[5];
+        Serial.println(garbageDays);
+
+        if (garbageDays.indexOf("今日") > 0) {
+          if (garbageDays.indexOf("燃やすごみ") > 0) {
+            today = burnable;
+          } else if (garbageDays.indexOf("燃やさないごみ") > 0) {
+            today = unburnable;
+          } else if (garbageDays.indexOf("資源") > 0) {
+            today = recyclable;
+          } else if (garbageDays.indexOf("あきびん") > 0) {
+            today = bottle;
+          } else {
+            today = notgarbage;
+          }
         } else {
           today = notgarbage;
         }
+
+        Serial.print("今日は、");
+        Serial.println(today);
+
       } else {
-        today = notgarbage;
+        Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
       }
-
-      Serial.print("今日は、");
-      Serial.println(today);
-
+      https.end();
     } else {
-      Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
+      Serial.printf("[HTTPS] Unable to connect\n");
     }
-    https.end();
-  } else {
-    Serial.printf("[HTTPS] Unable to connect\n");
+
   }
+
+  // SPIFSモード
+  if (mode_update == mode_spifs) {
+  }
+
 }
 
 // 文字列の分割処理
@@ -528,3 +607,93 @@ void listAllFiles() {
   Serial.println("------------------------------");
 }
 
+
+// csvファイルの読み出し・ごみカレンダー配列準備
+boolean csvFileRead_CalArraySet() {
+  // csvファイルの読出し
+  File fp = SPIFFS.open(data_garbage, "r"); // 読み取り
+  if (!fp) {
+    Serial.println("Failed to open Gomi-Calender File");
+    return (false);
+  }
+  while (fp.read((uint8_t *)buf_gmc, BUFFER_SIZE_GMC) == BUFFER_SIZE_GMC);
+  fp.close();
+
+  Serial.println("File Open complete !");
+  //Serial.print(buf_gmc);
+
+  // 読み取りデータをごみカレンダー配列（3次元配列）に格納
+  unsigned int i = 0;
+  for (unsigned int month = 0 ; month < 12 ; month++) {
+    for (unsigned int week = 0 ; week < 5 ; week++) {
+      for (unsigned int weekday = 0 ; weekday < 7 ; i++) {
+        if ( isDigit(buf_gmc[i]) ) {
+          gomi_cal[month][week][weekday] = buf_gmc[i];
+          weekday++;
+        }
+      }
+    }
+  }
+
+  /*
+    //ごみカレンダー配列の内容確認
+    Serial.println("");
+    Serial.println("Calender Array Conversin Start !");
+    //テスト書き出し
+    for (unsigned int month = 0 ; month < 12 ; month++) {
+      for (unsigned int week = 0 ; week < 5 ; week++) {
+        for (unsigned int weekday = 0 ; weekday < 7 ; weekday++) {
+          Serial.print(gomi_cal[month][week][weekday]);
+          if (weekday < 6 )  Serial.print(",");
+        }
+        Serial.print("\n");
+      }
+    }
+  */
+
+  return (true);
+}
+
+// 回収ごみ種に応じたLED色表示制御
+void ledColorControlWithGarbage(unsigned int month, unsigned int week, unsigned int weekday) {
+
+  Serial.printf("ごみIndex: %c\n", gomi_cal[month][week][weekday]);
+
+  switch (gomi_cal[month][week][weekday]) {
+    case '0':
+      // ごみ収集日でない
+      pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+      pixels.show();
+      break;
+    case '1':
+      // 『燃やすごみ』収集日
+      Blink.softly(&pixels, NUMPIXELS, 255, 0, 0, 3000);
+      delay(500);
+      break;
+    case '2':
+      // 『燃やさないごみ』収集日
+      Blink.softly(&pixels, NUMPIXELS, 0, 20, 235, 3000);
+      delay(500);
+      break;
+    case '3':
+      // 『資源』収集日
+      Blink.softly(&pixels, NUMPIXELS, 0, 255, 0, 3000);
+      delay(500);
+      break;
+    case '4':
+      // 『びん』収集日（『古紙類』＠河北郡）
+      Blink.softly(&pixels, NUMPIXELS, 128, 48, 0, 3000);
+      delay(500);
+      break;
+    case '5':
+      // （『粗大ごみ』＠河北郡）
+      Blink.softly(&pixels, NUMPIXELS, 128, 132, 0, 3000);
+      delay(500);
+      break;
+    default:
+      // 未知の ごみIndex
+      pixels.setPixelColor(0, pixels.Color(6, 6, 1));
+      pixels.show();
+      break;
+  }
+}
