@@ -99,6 +99,9 @@ void setup() {
   // NTP同期
   configTime( JST, 0, "ntp.nict.jp", "ntp.jst.mfeed.ad.jp");
 
+  // SPIFS内のファイル表示
+  listAllFiles();
+
   // サーバー機能
   server.on("/", handleRoot);
   server.on("/index.html", handleRoot);
@@ -511,3 +514,17 @@ int split(String data, char delimiter, String *dst) {
   }
   return (index + 1);
 }
+
+// SPIFS内のファイルを表示
+void listAllFiles() {
+  Serial.println("------------------------------");
+  Serial.println("SPIFS File");
+  Dir dir = SPIFFS.openDir("/");
+  while (dir.next()) {
+    Serial.print(dir.fileName());
+    File f = dir.openFile("r");
+    Serial.println(String(" ") + f.size());
+  }
+  Serial.println("------------------------------");
+}
+
