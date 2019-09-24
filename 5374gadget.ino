@@ -310,8 +310,8 @@ void wifiConnect() {
   WiFi.begin(ssid, password);
   Serial.print("Connecting to " + String(ssid));
 
-  //接続を試みる(30秒)
-  for (int i = 0; i < 60; i++) {
+  //接続を試みる(15秒)
+  for (int i = 0; i < 30; i++) {
     if (WiFi.status() == WL_CONNECTED) {
       //接続に成功。IPアドレスを表示
       Serial.println();
