@@ -1,4 +1,5 @@
 # 5374gadget
+![本体](https://github.com/yukima77/5374gadget/blob/images/main.JPG)
 
 ## 説明
 このデバイスはデバイス自体が光ることで、今日がゴミの日であることを知らせ、その色によりゴミの４つの分類のいずれかを知らせるデバイスです
