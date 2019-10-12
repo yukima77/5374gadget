@@ -105,6 +105,10 @@ void setup() {
   // ファイルの読み出しテスト(WiFi接続でSPIFFSを使うので、先に初期化)
   SPIFFS.begin();
 
+  // MACアドレスの表示
+  Serial.print("MAC address: ");
+  Serial.println(WiFi.macAddress());
+
   // AP+STAモードの設定
   WiFi.mode(WIFI_AP_STA);
   IPAddress myIP = WiFi.softAPIP();   // APとしてのIPアドレスを取得。デフォルトは 192.168.4.1
