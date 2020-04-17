@@ -19,7 +19,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ80
 uint8_t buf[BUFFER_SIZE];
 
 // APサーバーの設定
-const char* softap_ssid     = "5374gadget";
+//const char* softap_ssid     = "5374gadget";
 const char* softap_password = "12345678";
 const char* settings = "/wifi_settings.txt";
 const char* area_settings = "/area_settings.txt";
@@ -114,6 +114,16 @@ void setup() {
   IPAddress myIP = WiFi.softAPIP();   // APとしてのIPアドレスを取得。デフォルトは 192.168.4.1
   Serial.print("AP IP address: ");
   Serial.println(myIP);
+
+
+  byte mac[6];
+  WiFi.macAddress(mac);
+  String ssid = "5374gadget-";
+  for (int i = 4; i < 6; i++) {
+    ssid += String(mac[i], HEX);
+  }
+  Serial.println("SSID: " + ssid);
+  WiFi.softAP(ssid.c_str(), softap_password);
 
   // APとして振る舞うためのSSIDとPW情報
   WiFi.softAP(softap_ssid, softap_password);
