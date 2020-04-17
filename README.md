@@ -55,3 +55,6 @@ https://www.amazon.co.jp/dp/B00104S0QQ/
 * Flash Size: "2M(128K SPIFFS)
 
 http://www.shangtian.tokyo/entry/2018/02/17/151330
+
+# License
+This software is released under the MIT License, see LICENSE.txt.
