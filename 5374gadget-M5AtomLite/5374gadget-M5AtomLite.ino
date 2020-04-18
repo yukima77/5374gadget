@@ -40,7 +40,7 @@ int end_oclock   = 9;   // 通知を終了する時刻
 int end_minute   = 0;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 30;    // 地区の番号（例：浅野 0, 浅野川 1）
+int area_number = 14;    // 地区の番号（例：浅野 0, 浅野川 1）
 // ★★★★★★★★★★★★★★★★★★★
 
 // the setup routine runs once when M5Stack starts up
@@ -93,6 +93,7 @@ void setup() {
 }
 
 void loop() {
+  
   time_t t;
   struct tm *tm;
   static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
