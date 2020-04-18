@@ -12,6 +12,25 @@ enum GARBAGE {
   bottle,
 } today;
 
+/*
+// orinal color
+#define COLOR_NOTGARBAGE 0xffffff // white
+#define COLOR_BURNABLE   0xff0000 // red
+#define COLOR_UNBURNABLE 0xff00ff // purple
+#define COLOR_RECYCLABLE 0x00ff00 // green
+#define COLOR_BOTTLE     0x00ff80 // emerald green
+#define COLOR_IDLE       0x00ff00 // green
+*/
+
+// modified color: M5Atom libraryのバグ?(RとGが逆)
+#define COLOR_NOTGARBAGE 0xffffff // white
+#define COLOR_BURNABLE   0x00ff00 // red
+#define COLOR_UNBURNABLE 0x00ffff // purple
+#define COLOR_RECYCLABLE 0xff0000 // green
+#define COLOR_BOTTLE     0xff0080 // emerald green
+#define COLOR_IDLE       0xff0000 // green
+
+
 // ★★★★★設定項目★★★★★★★★★★
 const char* ssid     = "xxxxxxxx";       // 自宅のWiFi設定
 const char* password = "xxxxxxxx";
@@ -21,7 +40,7 @@ int end_oclock   = 9;   // 通知を終了する時刻
 int end_minute   = 0;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 14;    // 地区の番号（例：浅野 0, 浅野川 1）
+int area_number = 30;    // 地区の番号（例：浅野 0, 浅野川 1）
 // ★★★★★★★★★★★★★★★★★★★
 
 // the setup routine runs once when M5Stack starts up
@@ -49,22 +68,22 @@ void setup() {
 #if 0 // テスト用
   while (1) {
     // 燃やすごみ（赤）
-    M5.dis.drawpix(0, 0xff0000);
+    M5.dis.drawpix(0, COLOR_BURNABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
     // 燃やさないごみ（紫）
-    M5.dis.drawpix(0, 0xff00ff);
+    M5.dis.drawpix(0, COLOR_UNBURNABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
     // 資源ごみ（緑）
-    M5.dis.drawpix(0, 0x00ff00);
+    M5.dis.drawpix(0, COLOR_RECYCLABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
     // あきびん（エメラルドグリーン）
-    M5.dis.drawpix(0, 0x00ff80);
+    M5.dis.drawpix(0, COLOR_BOTTLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
@@ -74,7 +93,6 @@ void setup() {
 }
 
 void loop() {
-
   time_t t;
   struct tm *tm;
   static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
@@ -106,6 +124,7 @@ void loop() {
     {
       onLed();
     }
+    else Idle();
   }
   else if (end_oclock == tm->tm_hour)
   { // 終了時刻の分の判定
@@ -113,8 +132,10 @@ void loop() {
     {
       onLed();
     }
+    else Idle();
   }
-
+  else Idle();
+  
   // 夜中の３時にデータを更新
   if (tm->tm_hour == 3)
   { // 当日の捨てれるゴミ情報をアップデート
@@ -128,6 +149,15 @@ void loop() {
   // 時間待ち
   delay(100);
   M5.update();
+}
+
+void Idle()
+{
+  // 待機中は生存確認のために、短く緑フラッシュ(5秒周期)
+  M5.dis.drawpix(0, COLOR_IDLE);
+  delay(10);
+  M5.dis.drawpix(0, 0x000000);
+  delay(5000 - 110);
 }
 
 void wifiConnect() {
@@ -163,31 +193,32 @@ void onLed(void) {
   // 点灯パターン
   if (today == burnable) {
     // 燃やすごみ（赤）
-    M5.dis.drawpix(0, 0xff0000);
+    M5.dis.drawpix(0, COLOR_BURNABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
   } else if (today == unburnable) {
     // 燃やさないごみ（紫）
-    M5.dis.drawpix(0, 0xff00ff);
+    M5.dis.drawpix(0, COLOR_UNBURNABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
   } else if (today == recyclable) {
     // 資源ごみ（緑）
-    M5.dis.drawpix(0, 0x00ff00);
+    M5.dis.drawpix(0, COLOR_RECYCLABLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
   } else if (today == bottle) {
     // あきびん（エメラルドグリーン）
-    M5.dis.drawpix(0, 0x00ff80);
+    M5.dis.drawpix(0, COLOR_BOTTLE);
     delay(500);
     M5.dis.drawpix(0, 0x000000);
     delay(500);
   } else {
-    M5.dis.drawpix(0, 0x000000);
-    delay(500);
+    // 収集日以外は、生存確認のために短く白フラッシュ
+    M5.dis.drawpix(0, COLOR_NOTGARBAGE);
+    delay(10);
   }
 }
 
