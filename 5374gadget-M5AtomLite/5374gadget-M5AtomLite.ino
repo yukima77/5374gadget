@@ -34,13 +34,14 @@ enum GARBAGE {
 // ★★★★★設定項目★★★★★★★★★★
 const char* ssid     = "xxxxxxxx";       // 自宅のWiFi設定
 const char* password = "xxxxxxxx";
+
 int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 9;   // 通知を終了する時刻
 int end_minute   = 0;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 14;    // 地区の番号（例：浅野 0, 浅野川 1）
+int area_number = 30;    // 地区の番号（例：浅野 0, 浅野川 1）
 // ★★★★★★★★★★★★★★★★★★★
 
 // the setup routine runs once when M5Stack starts up
@@ -64,9 +65,11 @@ void setup() {
   // 今日のデータの読み出し
   today = notgarbage;
   updateGarbageDay();
+  wifiDisconnect();
 
 #if 0 // テスト用
   while (1) {
+    Serial.println("!");
     // 燃やすごみ（赤）
     M5.dis.drawpix(0, COLOR_BURNABLE);
     delay(500);
@@ -92,13 +95,12 @@ void setup() {
 
 }
 
+bool fLED = false;
+
 void loop() {
-  
   time_t t;
   struct tm *tm;
   static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
-
-  Serial.println('!')
 
   t = time(NULL);
   tm = localtime(&t);
@@ -110,12 +112,7 @@ void loop() {
                   tm->tm_hour, tm->tm_min, tm->tm_sec);
   */
 
-  // STAモードで接続出来ていない場合
-  if (WiFi.status() != WL_CONNECTED) {
-    M5.dis.drawpix(0, 0xffffff);
-    wifiConnect();
-  }
-
+  fLED = false;
   // 時間のチェック(24H表記)
   if ((start_oclock < tm->tm_hour) && (tm->tm_hour < end_oclock))
   {
@@ -144,30 +141,54 @@ void loop() {
   { // 当日の捨てれるゴミ情報をアップデート
     if ((tm->tm_min == 0) || (tm->tm_min == 20) || (tm->tm_min == 40))
     {
+      wifiConnect();
+      // STAモードで接続出来ていない場合
+      if (WiFi.status() != WL_CONNECTED) {
+        M5.dis.drawpix(0, 0xffffff);
+        wifiConnect();
+      }
       updateGarbageDay();
+      wifiDisconnect();
       delay(70000); // 余裕を見て、70秒後に変更
     }
   }
 
   // 時間待ち
-   M5.Power.lightSleep(1);
-// delay(100);
+//  delay(100);
+//https://lang-ship.com/blog/work/esp32-light-sleep/
+  if (fLED == true) delay(100);
+  else{
+//    delay(10000); // 10sec
+    // light_sleepだとLEDが白点灯のことがあるのでいったんpendingし、deep_sleepから5分ごとに起こす (40mA程度)
+    esp_sleep_enable_timer_wakeup(10000000 * 30); // 10 sec * 6 * 5 = 5min
+    Serial.println("going deep sleep..."); delay(1000);
+    esp_deep_sleep_start();
+    
+  }
+
   M5.update();
 }
 
 void Idle()
 {
-  // 待機中は生存確認のために、短く緑フラッシュ(5秒周期)
+  fLED = false;
+  // 待機中は生存確認のために、短く緑フラッシュ
   M5.dis.drawpix(0, COLOR_IDLE);
   delay(10);
   M5.dis.drawpix(0, 0x000000);
-  delay(5000 - 110);
+//  delay(5000 - 110);
+}
+
+void wifiDisconnect(){
+  Serial.println("Disconnecting WiFi...");
+  WiFi.disconnect(true); // disconnect & WiFi power off
 }
 
 void wifiConnect() {
   Serial.print("Connecting to " + String(ssid));
 
   //WiFi接続開始
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   //接続を試みる(30秒)
@@ -195,6 +216,7 @@ void wifiConnect() {
 
 void onLed(void) {
   // 点灯パターン
+  fLED = true;
   if (today == burnable) {
     // 燃やすごみ（赤）
     M5.dis.drawpix(0, COLOR_BURNABLE);
@@ -223,6 +245,7 @@ void onLed(void) {
     // 収集日以外は、生存確認のために短く白フラッシュ
     M5.dis.drawpix(0, COLOR_NOTGARBAGE);
     delay(10);
+    fLED = false;
   }
 }
 
