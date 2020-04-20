@@ -98,6 +98,8 @@ void loop() {
   struct tm *tm;
   static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
 
+  Serial.println('!')
+
   t = time(NULL);
   tm = localtime(&t);
 
@@ -148,7 +150,8 @@ void loop() {
   }
 
   // 時間待ち
-  delay(100);
+   M5.Power.lightSleep(1);
+// delay(100);
   M5.update();
 }
 
