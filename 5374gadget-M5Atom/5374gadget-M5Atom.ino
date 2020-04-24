@@ -1,3 +1,5 @@
+// for M5ATOM Matrix/Lite (modified by akita11)
+
 #include "M5Atom.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -12,39 +14,56 @@ enum GARBAGE {
   bottle,
 } today;
 
+#define COLOR_NOTGARBAGE 0xffffff // white
+#define COLOR_BURNABLE   0xff0000 // red
+#define COLOR_UNBURNABLE 0xff00ff // purple
+#define COLOR_RECYCLABLE 0x00ff00 // green
+#define COLOR_BOTTLE     0x00ff80 // emerald green
+#define COLOR_IDLE       0x00ff00 // green
+#define COLOR_BLANK      0x000000 // black/blank
+#define COLOR_WHITE      0xffffff // white
+
+#define COLOR_BLANK      0x000000 // black/blank
+#define COLOR_WHITE      0xffffff // white
+
 // ★★★★★設定項目★★★★★★★★★★
 const char* ssid     = "xxxxxxxx";       // 自宅のWiFi設定
 const char* password = "xxxxxxxx";
+
 int start_oclock = 6;   // 通知を開始する時刻
 int start_minute = 0;
 int end_oclock   = 9;   // 通知を終了する時刻
 int end_minute   = 0;
 // 以下のURLにあるエリア番号を入れる
 //https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 14;    // 地区の番号（例：浅野 0, 浅野川 1）
+int area_number = 30;    // 地区の番号（例：浅野 0, 浅野川 1）
 // ★★★★★★★★★★★★★★★★★★★
 
 uint8_t DisBuff[2 + 5 * 5 * 3];
 
-void setBuff(uint8_t Rdata, uint8_t Gdata, uint8_t Bdata)
+void setDisp(uint32_t color)
 {
   DisBuff[0] = 0x05;
   DisBuff[1] = 0x05;
   for (int i = 0; i < 25; i++)
   {
-    DisBuff[2 + i * 3 + 0] = Rdata;
-    DisBuff[2 + i * 3 + 1] = Gdata;
-    DisBuff[2 + i * 3 + 2] = Bdata;
+// modified color: M5Atom libraryのバグ?(RとGが逆)
+//    DisBuff[2 + i * 3 + 1] = color >> 16;
+//    DisBuff[2 + i * 3 + 0] = color >> 8;
+    DisBuff[2 + i * 3 + 0] = color >> 16;
+    DisBuff[2 + i * 3 + 1] = color >> 8;
+    DisBuff[2 + i * 3 + 2] = color;
   }
+  M5.dis.displaybuff(DisBuff);
 }
+
 
 // the setup routine runs once when M5Stack starts up
 void setup() {
 
   M5.begin(true, false, true);
   delay(10);
-  setBuff(0x00, 0x00, 0x00);
-  M5.dis.displaybuff(DisBuff);
+  setDisp(COLOR_BLANK);
 
   // シリアル設定
   Serial.begin(115200);
@@ -60,44 +79,39 @@ void setup() {
   // 今日のデータの読み出し
   today = notgarbage;
   updateGarbageDay();
+  wifiDisconnect();
 
 #if 0 // テスト用
   while (1) {
+    Serial.println(".");
     // 燃やすごみ（赤）
-    setBuff(0xff, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BURNABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
     // 燃やさないごみ（紫）
-    setBuff(0xff, 0x00, 0xff);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_UNBURNABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
     // 資源ごみ（緑）
-    setBuff(0x00, 0xff, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_RECYCLABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
     // あきびん（エメラルドグリーン）
-    setBuff(0x00, 0xff, 0x80);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BOTTLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
   }
 #endif
 
 }
 
-void loop() {
+bool fLED = false;
 
+void loop() {
   time_t t;
   struct tm *tm;
   static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
@@ -112,13 +126,7 @@ void loop() {
                   tm->tm_hour, tm->tm_min, tm->tm_sec);
   */
 
-  // STAモードで接続出来ていない場合
-  if (WiFi.status() != WL_CONNECTED) {
-    setBuff(0xff, 0xff, 0xff);
-    M5.dis.displaybuff(DisBuff);
-    wifiConnect();
-  }
-
+  fLED = false;
   // 時間のチェック(24H表記)
   if ((start_oclock < tm->tm_hour) && (tm->tm_hour < end_oclock))
   {
@@ -130,6 +138,7 @@ void loop() {
     {
       onLed();
     }
+    else Idle();
   }
   else if (end_oclock == tm->tm_hour)
   { // 終了時刻の分の判定
@@ -137,27 +146,63 @@ void loop() {
     {
       onLed();
     }
+    else Idle();
   }
-
+  else Idle();
+  
   // 夜中の３時にデータを更新
   if (tm->tm_hour == 3)
   { // 当日の捨てれるゴミ情報をアップデート
     if ((tm->tm_min == 0) || (tm->tm_min == 20) || (tm->tm_min == 40))
     {
+      wifiConnect();
+      // STAモードで接続出来ていない場合
+      if (WiFi.status() != WL_CONNECTED) {
+        setDisp(COLOR_WHITE);
+        wifiConnect();
+      }
       updateGarbageDay();
+      wifiDisconnect();
       delay(70000); // 余裕を見て、70秒後に変更
     }
   }
 
   // 時間待ち
-  delay(100);
+//  delay(100);
+//https://lang-ship.com/blog/work/esp32-light-sleep/
+  if (fLED == true) delay(100);
+  else{
+//    delay(10000); // 10sec
+    // light_sleepだとLEDが白点灯のことがあるのでいったんpendingし、deep_sleepから5分ごとに起こす (40mA程度)
+    esp_sleep_enable_timer_wakeup(10000000 * 30); // 10 sec * 6 * 5 = 5min
+    Serial.println("going deep sleep..."); delay(1000);
+    esp_deep_sleep_start();
+    
+  }
+
   M5.update();
+}
+
+void Idle()
+{
+  fLED = false;
+  // 待機中は生存確認のために、短く緑フラッシュ
+  setDisp(COLOR_IDLE);
+  delay(10);
+  setDisp(COLOR_BLANK);
+//  delay(5000 - 110);
+}
+
+void wifiDisconnect(){
+  Serial.println("Disconnecting WiFi...");
+  WiFi.disconnect(true); // disconnect & WiFi power off
 }
 
 void wifiConnect() {
   Serial.print("Connecting to " + String(ssid));
 
   //WiFi接続開始
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   //接続を試みる(30秒)
@@ -185,42 +230,36 @@ void wifiConnect() {
 
 void onLed(void) {
   // 点灯パターン
+  fLED = true;
   if (today == burnable) {
     // 燃やすごみ（赤）
-    setBuff(0xff, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BURNABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
   } else if (today == unburnable) {
     // 燃やさないごみ（紫）
-    setBuff(0xff, 0x00, 0xff);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_UNBURNABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
   } else if (today == recyclable) {
     // 資源ごみ（緑）
-    setBuff(0x00, 0xff, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_RECYCLABLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
   } else if (today == bottle) {
     // あきびん（エメラルドグリーン）
-    setBuff(0x00, 0xff, 0x80);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BOTTLE);
     delay(500);
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
+    setDisp(COLOR_BLANK);
     delay(500);
   } else {
-    setBuff(0x00, 0x00, 0x00);
-    M5.dis.displaybuff(DisBuff);
-    delay(500);
+    // 収集日以外は、生存確認のために短く白フラッシュ
+    setDisp(COLOR_NOTGARBAGE);
+    delay(10);
+    fLED = false;
   }
 }
 
