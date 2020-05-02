@@ -69,19 +69,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("");
 
-  pinMode(25, OUTPUT);
-
-  while(1){
-    Serial.println("0"); digitalWrite(25, 0); delay(500);
-    Serial.println("1"); digitalWrite(25, 1); delay(500);
-    Serial.println("0"); digitalWrite(25, 0); delay(500);
-    // https://lang-ship.com/blog/work/esp32-sleep-setting/
-    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH  , ESP_PD_OPTION_ON);
-    esp_sleep_enable_timer_wakeup(3000000);
-    Serial.println("going deep sleep..."); delay(1000);
-    esp_deep_sleep_start();
-  }
-
   // WiFi接続
   wifiConnect();
   delay(1000);
