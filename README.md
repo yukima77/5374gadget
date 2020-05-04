@@ -1,4 +1,4 @@
-# 5374gadget
+# 5374ガジェット
 ![本体](https://github.com/yukima77/5374gadget/blob/images/main.JPG)
 
 ## 説明
