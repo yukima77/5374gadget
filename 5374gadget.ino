@@ -19,8 +19,8 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ80
 uint8_t buf[BUFFER_SIZE];
 
 // APサーバーの設定
-//const char* softap_ssid     = "5374gadget";
-const char* softap_password = "12345678";
+String softap_ssid = "5374gadget-";
+String softap_password = "12345678";
 const char* settings = "/wifi_settings.txt";
 const char* area_settings = "/area_settings.txt";
 ESP8266WebServer server(80); //Webサーバの待ち受けポートを標準的な80番として定義します
@@ -117,15 +117,15 @@ void setup() {
   Serial.print("AP IP address: ");
   Serial.println(myIP);
 
-
+  // AP用の固有SSIDを生成
   byte mac[6];
   WiFi.macAddress(mac);
-  String ssid = "5374gadget-";
   for (int i = 4; i < 6; i++) {
-    ssid += String(mac[i], HEX);
+    softap_ssid += String(mac[i], HEX);
   }
-  Serial.println("SSID: " + ssid);
-  WiFi.softAP(ssid.c_str(), softap_password);
+  Serial.println("AP_SSID: " + softap_ssid);
+  Serial.println("AP_PASS: " + softap_password);
+  Serial.println("");
 
   // APとして振る舞うためのSSIDとPW情報
   WiFi.softAP(softap_ssid, softap_password);
