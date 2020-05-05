@@ -172,14 +172,13 @@ void loop() {
 //https://lang-ship.com/blog/work/esp32-light-sleep/
   if (fLED == true) delay(100);
   else{
-//    delay(10000); // 10sec
     // light_sleepだとLEDが白点灯のことがあるのでいったんpendingし、deep_sleepから5分ごとに起こす (40mA程度)
-    esp_sleep_enable_timer_wakeup(10000000 * 30); // 10 sec * 6 * 5 = 5min
-    Serial.println("going deep sleep..."); delay(1000);
-    esp_deep_sleep_start();
-    
+    // →deep_sleepでも、一部LEDが白点灯になる（GPIO27がDeepSleep中にLに保持されないっぽ）ので、delay()に変更
+//    esp_sleep_enable_timer_wakeup(10000000 * 30); // 10 sec * 6 * 5 = 5min
+//    Serial.println("going deep sleep..."); delay(1000);
+//    esp_deep_sleep_start();
+    delay(300000); // 5min
   }
-
   M5.update();
 }
 
