@@ -57,5 +57,9 @@ https://www.amazon.co.jp/dp/B00104S0QQ/
 
 http://www.shangtian.tokyo/entry/2018/02/17/151330
 
+#### Library
+* EmotionalBlink
+
+
 # License
 This software is released under the MIT License, see LICENSE.
