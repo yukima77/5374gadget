@@ -80,7 +80,9 @@ void setup() {
   // シリアル設定
   Serial.begin(9600);
   Serial.println("");
+  Serial.println("");
   Serial.println("Start 5374gadget!!!");
+  Serial.println("");
 
   // NeoPixelのLEDの初期化
   pixels.begin();
@@ -318,14 +320,12 @@ void wifiConnect() {
   }
   f_area.close();
 
-
-
   //WiFi接続開始
   WiFi.begin(ssid, password);
   Serial.print("Connecting to " + String(ssid));
 
-  //接続を試みる(15秒)
-  for (int i = 0; i < 30; i++) {
+  //接続を試みる(10秒)
+  for (int i = 0; i < 20; i++) {
     if (WiFi.status() == WL_CONNECTED) {
       //接続に成功。IPアドレスを表示
       Serial.println();
