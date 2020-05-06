@@ -14,6 +14,21 @@
 #define NUMPIXELS   1
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
+// ★★★★★設定項目★★★★★★★★★★
+String ssid     = "********";       // 自宅のWiFi設定
+String password = "********";
+int start_oclock = 6;   // 通知を開始する時刻
+int start_minute = 0;
+int end_oclock   = 8;   // 通知を終了する時刻
+int end_minute   = 30;
+// ★★★★★★★★★★★★★★★★★★★
+
+// ★★★★★設定項目（金沢市版）★★★★
+// 以下のURLにあるエリア番号を入れる
+//https://github.com/PhalanXware/scraped-5374/blob/master/save.json
+int area_number = 0;    // 地区の番号（例：浅野 0, 浅野川 1）
+// ★★★★★★★★★★★★★★★★★★★
+
 // HTML用バッファ
 #define BUFFER_SIZE 5120
 uint8_t buf[BUFFER_SIZE];
@@ -59,21 +74,6 @@ char buf_gmc[BUFFER_SIZE_GMC];
 //        1: 週(0～4  = 第1週～第5週)
 //        2: 週(0～6  = 日曜日～土曜日)
 char gomi_cal[12][5][7];
-
-// ★★★★★設定項目★★★★★★★★★★
-String ssid     = "********";       // 自宅のWiFi設定
-String password = "********";
-int start_oclock = 6;   // 通知を開始する時刻
-int start_minute = 0;
-int end_oclock   = 8;   // 通知を終了する時刻
-int end_minute   = 30;
-// ★★★★★★★★★★★★★★★★★★★
-
-// ★★★★★設定項目（金沢市版）★★★★
-// 以下のURLにあるエリア番号を入れる
-//https://github.com/PhalanXware/scraped-5374/blob/master/save.json
-int area_number = 0;    // 地区の番号（例：浅野 0, 浅野川 1）
-// ★★★★★★★★★★★★★★★★★★★
 
 void setup() {
 
