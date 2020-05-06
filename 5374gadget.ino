@@ -86,7 +86,7 @@ void setup() {
 
   // NeoPixelのLEDの初期化
   pixels.begin();
-  pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+  pixels.setPixelColor(0, pixels.Color(32, 32, 32));
   pixels.show();
 
   // 展示用デモ
@@ -173,6 +173,9 @@ void setup() {
   server.onNotFound(handleNotFound);                // エラー処理
   server.begin();
   Serial.println("HTTP server started");
+
+  // 起動後の表示
+  Blink.softly(&pixels, NUMPIXELS, 255, 255, 255, 3000);
 
 }
 
