@@ -41,8 +41,7 @@
 
 
 ## 設置について
-以下のUSB-ACアダプタを使用すると壁のコンセントに綺麗に設置することが可能です。
-その他のACアダプタの場合は、USBの向きが合わないことがあります。
+以下のUSB-ACアダプタを使用すると壁のコンセントに綺麗に設置することが可能です。その他のACアダプタの場合は、USBの向きが合わないことがありますが、以下に記載してある設置例を参考にしてもらえると自宅の環境にあった設置が可能になると思います。
 
 https://www.amazon.co.jp/dp/B00104S0QQ/
 
@@ -60,6 +59,9 @@ http://www.shangtian.tokyo/entry/2018/02/17/151330
 #### Library
 * EmotionalBlink
 
+# 設置のイメージ
+![本体](https://github.com/yukima77/5374gadget/blob/images/main_002.jpg)
+![本体](https://github.com/yukima77/5374gadget/blob/images/main_003.jpg)
 
 # License
 This software is released under the MIT License, see LICENSE.
