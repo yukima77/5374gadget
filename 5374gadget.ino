@@ -60,7 +60,7 @@ bool retryWifiConnect = false;
 
 // Use web browser to view and copy
 // SHA1 fingerprint of the certificate
-const char fingerprint[] PROGMEM = "CC AA 48 48 66 46 0E 91 53 2C 9C 7C 23 2A B1 74 4D 29 9D 33"; // raw
+const char fingerprint[] PROGMEM = "70 94 DE DD E6 C4 69 48 3A 92 70 A1 48 56 78 2D 18 64 E0 B7";
 
 // ゴミの日データ(ローカルファイル版)
 const char* data_garbage = "/data_garbage.csv";
