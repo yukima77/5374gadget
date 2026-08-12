@@ -58,10 +58,6 @@ enum MODE {
 bool updatedArea = false;
 bool retryWifiConnect = false;
 
-// Use web browser to view and copy
-// SHA1 fingerprint of the certificate
-const char fingerprint[] PROGMEM = "70 94 DE DD E6 C4 69 48 3A 92 70 A1 48 56 78 2D 18 64 E0 B7";
-
 // ゴミの日データ(ローカルファイル版)
 const char* data_garbage = "/data_garbage.csv";
 
@@ -525,7 +521,7 @@ void updateGarbageDay(void) {
 
     // ゴミ情報の読み出し
     std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
-    client->setFingerprint(fingerprint);
+    client->setInsecure();
     HTTPClient https;
 
     // "area"とJSONファイルのNo.のずれはここで吸収する
